@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morgloth · Portfolio</title>
+<meta name="description" content="Write-ups of systems I built and run at home: a voice-note pipeline, an LLM with guardrails, running an AI agent safely, and a health page for everything that needs a person.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap wide">
+  <a class="name" href="./">Morgloth</a>
+  <nav>
+    <a href="dictation.html">Dictation</a>
+    <a href="guardrails.html">LLM guardrails</a>
+    <a href="agent.html">AI agent</a>
+    <a href="health.html">Health page</a>
+    <a href="https://github.com/Morgloth">GitHub</a>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+  <h1>Systems I built and run</h1>
+  <p class="lede">I'm a systems engineer. At home I run a small lab: two Proxmox servers with about twenty
+  containers, a GPU box for speech and local models, a NAS, monitoring and a web app that ties it together.
+  These write-ups cover the four parts I'd most like to talk about.</p>
+
+  <div class="cards">
+    <a class="card" href="dictation.html">
+      <h2>Voice notes to filed notes</h2>
+      <p>Phone dictation → Whisper on a GPU → an LLM tidies and files it. What happened when the GPU ran out of memory, and the retry queue that came out of it.</p>
+    </a>
+    <a class="card" href="guardrails.html">
+      <h2>An LLM with guardrails</h2>
+      <p>A daily briefing where code decides every fact and the model only writes the wording. No tools, separate calls for untrusted text, every answer checked.</p>
+    </a>
+    <a class="card" href="agent.html">
+      <h2>Running an AI agent on real systems</h2>
+      <p>Context files, skills as runbooks, hooks, memory, and a hard line: root steps go to a person. Including the time a "read-only" script deleted files.</p>
+    </a>
+    <a class="card" href="health.html">
+      <h2>One page for what needs a person</h2>
+      <p>A collector, a list of action items with the exact fix, and acknowledge/snooze that knows when to bring something back. With a live demo.</p>
+    </a>
+  </div>
+
+  <h2>How this was built</h2>
+  <p>I build with an AI coding agent (Claude Code) running in its own container. I decide what gets built and how
+  it should behave, review the changes, test them, and run the risky steps on the hosts myself. The agent writes most
+  of the code. A lot of what I learned is about that split: what to hand over, what to keep, and how to make the
+  agent's work checkable. <a href="agent.html">That write-up</a> covers it.</p>
+
+  <h2>What's here and what isn't</h2>
+  <p>The write-ups show the design, what broke and how I fixed it, plus short code samples in the
+  <a href="https://github.com/Morgloth/portfolio">repo</a>. The samples are shortened and run on their own (each has
+  a self-test). Names, addresses and anything personal are left out. Nothing here links into the lab: the demo and
+  screenshots use made-up data.</p>
+  <p>A runnable tool from the same lab is on GitHub too:
+  <a href="https://github.com/Morgloth/eitri">Eitri</a>, a self-hosted save library and editor for single-player
+  PC games, with a plugin per file format, a stdlib Python server and tests in CI.</p>
+</div></main>
+
+<footer class="site"><div class="wrap">Morgloth · text and code under the MIT licence · <a href="https://github.com/Morgloth/portfolio">source</a></div></footer>
+</body>
+</html>

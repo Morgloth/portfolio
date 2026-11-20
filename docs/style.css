@@ -1,0 +1,130 @@
+:root {
+  --bg: #0f1216;
+  --panel: #171b21;
+  --panel-2: #1e232b;
+  --line: #2c333d;
+  --fg: #e4e7eb;
+  --muted: #9aa3ad;
+  --accent: #6cb6ff;
+  --accent-soft: rgba(108, 182, 255, 0.14);
+  --good: #57c785;
+  --warn: #e3b341;
+  --bad: #f47067;
+  --code-bg: #12161b;
+  --radius: 10px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel-2: #eef1f4;
+    --line: #d5dae0;
+    --fg: #1d232a;
+    --muted: #5b6570;
+    --accent: #0b62c4;
+    --accent-soft: rgba(11, 98, 196, 0.1);
+    --good: #1f8a4c;
+    --warn: #9a6700;
+    --bad: #c93c37;
+    --code-bg: #f0f2f5;
+    color-scheme: light;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 17px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--accent); text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+
+.wrap { max-width: 780px; margin: 0 auto; padding: 0 16px; }
+.wide { max-width: 1000px; }
+
+header.site {
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+header.site .wrap { display: flex; align-items: center; gap: 18px; padding-top: 12px; padding-bottom: 12px; flex-wrap: wrap; }
+header.site .name { font-weight: 700; color: var(--fg); text-decoration: none; margin-right: auto; }
+header.site nav { display: flex; gap: 16px; flex-wrap: wrap; font-size: 15px; }
+header.site nav a { color: var(--muted); text-decoration: none; }
+header.site nav a:hover, header.site nav a[aria-current] { color: var(--fg); }
+
+main { padding: 36px 0 56px; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+h2 { font-size: 1.3rem; margin: 2.2em 0 0.6em; }
+h3 { font-size: 1.05rem; margin: 1.6em 0 0.4em; }
+p, ul, ol { margin: 0 0 1em; }
+li { margin: 0.25em 0; }
+.lede { font-size: 1.15rem; color: var(--muted); margin-bottom: 1.6em; }
+.meta { color: var(--muted); font-size: 14px; }
+strong { color: var(--fg); }
+
+code { font: 0.88em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg);
+       padding: 0.1em 0.35em; border-radius: 4px; border: 1px solid var(--line); }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px;
+      overflow-x: auto; font-size: 14px; line-height: 1.55; margin: 0 0 1.2em; }
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+.c { color: var(--muted); }
+
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px;
+           border-radius: 0 var(--radius) var(--radius) 0; margin: 0 0 1.2em; }
+.callout p:last-child { margin: 0; }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0 0 1.6em; }
+.facts div { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
+.facts b { display: block; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 1.2em 0 2em; }
+.card { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 18px; text-decoration: none; color: var(--fg); transition: transform 0.15s ease; }
+.card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.card h2 { margin: 0 0 6px; font-size: 1.15rem; color: var(--accent); }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+
+figure { margin: 0 0 1.6em; }
+figure svg, figure img { display: block; width: 100%; height: auto; background: var(--panel);
+                         border: 1px solid var(--line); border-radius: var(--radius); }
+figcaption { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+/* diagrams */
+svg.diagram { font: 13px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+svg.diagram .box { fill: var(--panel-2); stroke: var(--line); stroke-width: 1.5; }
+svg.diagram .box.hi { stroke: var(--accent); }
+svg.diagram .box.llm { stroke: var(--warn); stroke-dasharray: 5 4; }
+svg.diagram .box.person { stroke: var(--good); }
+svg.diagram text { fill: var(--fg); }
+svg.diagram text.sub { fill: var(--muted); font-size: 11.5px; }
+svg.diagram text.lab { fill: var(--muted); font-size: 11.5px; }
+svg.diagram .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+svg.diagram .arrow.fail { stroke: var(--bad); stroke-dasharray: 4 3; }
+svg.diagram .head { fill: var(--muted); }
+svg.diagram .wall { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 6 5; }
+
+table { border-collapse: collapse; width: 100%; margin: 0 0 1.2em; font-size: 15px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+.tablewrap { overflow-x: auto; }
+
+.next { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line);
+        margin-top: 2.5em; padding-top: 1.2em; }
+footer.site { border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; padding: 20px 0 32px; }
+
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  h1 { font-size: 1.6rem; }
+  main { padding-top: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+
+/* small screens: diagrams keep a readable size and scroll sideways inside their figure */
+@media (max-width: 640px) {
+  figure:has(svg.diagram) { overflow-x: auto; }
+  figure svg.diagram { min-width: 620px; }
+}

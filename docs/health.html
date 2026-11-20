@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Health Page</title>
+<meta name="description" content="One page for everything in my lab that needs a person: a root collector, action items with the exact fix, and acknowledge/snooze that knows when to bring an item back.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap wide">
+  <a class="name" href="./">Morgloth</a>
+  <nav>
+    <a href="dictation.html">Dictation</a>
+    <a href="guardrails.html">LLM guardrails</a>
+    <a href="agent.html">AI agent</a>
+    <a href="health.html" aria-current="page">Health page</a>
+    <a href="https://github.com/Morgloth">GitHub</a>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+  <h1>One page for what needs a person</h1>
+  <p class="lede">My lab has graphs, dashboards and logs for everything. I don't read them. I read one page, which
+  lists only the things that need me, says how bad each one is, and gives me the exact command that fixes it.</p>
+
+  <div class="facts">
+    <div><b>Collector</b>Python, root on the host, every 30 min</div>
+    <div><b>Page</b>Python stdlib web app + plain JS</div>
+    <div><b>Checks</b>Close to 200 kinds of item</div>
+    <div><b>Demo</b><a href="health-demo.html">Try it with made-up data</a></div>
+  </div>
+
+  <figure>
+    <a href="health-demo.html"><img src="img/health-demo.png" alt="The health page demo: a list of action items grouped by severity, each with a detail line, a copyable fix command and acknowledge buttons." width="1290" height="1775"></a>
+    <figcaption>The <a href="health-demo.html">demo</a> with made-up items. Red needs me now, yellow soon, grey is FYI.</figcaption>
+  </figure>
+
+  <h2>The problem</h2>
+  <p>Monitoring is easy to add and hard to read. Every tool I installed came with its own dashboard and alerts, and
+  after a few months the useful signal was buried. What I wanted was the opposite of a dashboard: an empty page when
+  everything is fine, and when something isn't, a short list in order of how much it matters, each with what to do.</p>
+
+  <h2>How it works</h2>
+  <figure>
+    <svg class="diagram" viewBox="0 0 700 260" role="img" aria-labelledby="d4t">
+      <title id="d4t">A collector running as root on the host pushes JSON into the web container one way. Other jobs upload their results. The web app turns all of it into action items, applies acknowledgements, keeps an item log, shows the page and pushes red items to the phone.</title>
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <rect class="box" x="20" y="24" width="170" height="74" rx="8"/>
+      <text x="105" y="50" text-anchor="middle">Collector</text>
+      <text class="sub" x="105" y="68" text-anchor="middle">root on the host</text>
+      <text class="sub" x="105" y="84" text-anchor="middle">updates, disks, backups</text>
+      <rect class="box" x="20" y="150" width="170" height="74" rx="8"/>
+      <text x="105" y="176" text-anchor="middle">Other jobs</text>
+      <text class="sub" x="105" y="194" text-anchor="middle">CVE watch, ISP monitor,</text>
+      <text class="sub" x="105" y="210" text-anchor="middle">network map, backups</text>
+      <rect class="box hi" x="265" y="80" width="170" height="90" rx="8"/>
+      <text x="350" y="106" text-anchor="middle">Web app</text>
+      <text class="sub" x="350" y="124" text-anchor="middle">checks → action items</text>
+      <text class="sub" x="350" y="140" text-anchor="middle">acks, item log</text>
+      <text class="sub" x="350" y="156" text-anchor="middle">monitors of monitors</text>
+      <rect class="box person" x="510" y="40" width="170" height="60" rx="8"/>
+      <text x="595" y="66" text-anchor="middle">Health page</text>
+      <text class="sub" x="595" y="84" text-anchor="middle">ack, snooze, copy fix</text>
+      <rect class="box person" x="510" y="150" width="170" height="60" rx="8"/>
+      <text x="595" y="176" text-anchor="middle">Phone push</text>
+      <text class="sub" x="595" y="194" text-anchor="middle">red items, daily briefing</text>
+      <path class="arrow" d="M190,61 C230,61 240,100 262,112"/>
+      <text class="lab" x="200" y="38">JSON, one way</text>
+      <path class="arrow" d="M190,187 C230,187 240,150 262,140"/>
+      <text class="lab" x="226" y="232" text-anchor="middle">uploads, by source IP</text>
+      <path class="arrow" d="M435,112 L507,78"/>
+      <path class="arrow" d="M435,140 L507,174"/>
+      <path class="arrow fail" d="M265,100 C230,95 215,100 192,90"/>
+      <text class="lab" x="198" y="124">"refresh"</text>
+    </svg>
+    <figcaption>The only thing that crosses from the web container back to the host is a "refresh now" request file, rate-limited to once a minute.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>A collector on the host</strong> runs as root every 30 minutes and gathers what only the host can see:
+    pending updates on the host and in every container, reboot flags, the ZFS pool and its disks' SMART data, flash
+    wear on the boot drive, backup results, the TLS certificate, the UPS, memory pressure, and when the domain expires.
+    It pushes that as one JSON file into the web container. The container can't reach back; a "refresh now" button only
+    drops a request file that a systemd path unit on the host watches.</li>
+    <li><strong>Other jobs</strong> upload their own results: a CVE watcher, the internet monitor, the network map,
+    backup copies. Upload endpoints accept only the machine that's supposed to send them.</li>
+    <li><strong>The web app</strong> runs the checks and turns everything into action items. Each item has a severity
+    (bad, warn, info), an area, a title, a detail line, a link, and <code>how</code>: the exact command the Copy button
+    copies, written to work from where I'll be sitting.</li>
+    <li><strong>Pushes</strong> go to my phone only for new red items, once each. Acknowledged items stay quiet, and
+    warnings and FYIs stay on the page.</li>
+  </ul>
+
+  <h3>Monitors of monitors</h3>
+  <p>A check that stops running looks exactly like a system that's fine. So every background job's freshness is an
+  item too: if the collector, the CVE watcher or a backup copy hasn't reported within its expected window, that shows
+  up on the page.</p>
+
+  <h3>Ladders, not alarms</h3>
+  <p>Many things only need me eventually. A host waiting to reboot after a kernel update is FYI for 3 days, a warning
+  from 3 to 7, red after 7, and after 10 days the system does it at 01:00 by itself. I get time to pick the moment, and
+  it can't be forgotten.</p>
+
+  <h2>Acknowledge and snooze</h2>
+  <p>A list of problems is only useful if I can say "I know" without the item disappearing for good. This took the
+  most thought. The list is rebuilt from scratch every few minutes, so an acknowledgement has to recognise "the same
+  item" again:</p>
+  <ul>
+    <li><strong>Key:</strong> area plus title with the numbers taken out, so "UPS battery at 18%" and "at 17%" are one
+    item, not a new one every refresh.</li>
+    <li><strong>Ongoing items</strong> (a state, like a disk filling up) come back after the reminder I picked: 1, 3 or 7 days.</li>
+    <li><strong>Events</strong> (something happened, like a failed backup run) stay hidden until they happen again, which
+    the item notices through a fingerprint such as the failed run's start time.</li>
+    <li><strong>Worse beats acknowledged.</strong> If the severity goes up, the item comes back at once, with a note: "Got
+    worse since you acknowledged it (19 Nov 14:05)".</li>
+    <li><strong>Fixed means gone for 2 hours.</strong> Then the acknowledgement is dropped. A shorter gap is just a
+    check that didn't run this time, and dropping the acknowledgement then would make the item pop back up later as if
+    it were new.</li>
+  </ul>
+  <pre><code><span class="c"># from samples/health/acks.py</span>
+worse = SEV[it["sev"]] &lt; SEV[a["sev"]]
+again = it["fp"] != a["fp"]
+due = a["until"] is not None and now &gt;= a["until"]
+if not (worse or again or due):
+    hidden.append(it)
+    continue
+shown.append({**it, "ack_note": "Got worse since you acknowledged it" if worse else
+              "Happened again since you acknowledged it" if again else
+              "Reminder: acknowledged, still not fixed"})</code></pre>
+  <p>An item log records when each item opened and closed (gone 5 minutes counts as closed; a shorter gap continues
+  the same row). It feeds the "last 24 hours" list on the page and the "fixed itself overnight" part of my
+  <a href="guardrails.html">morning briefing</a>.</p>
+
+  <h2>What broke</h2>
+  <h3>False alarms cost more than they look</h3>
+  <p>My desktop drops its network link to 10 Mbit when it sleeps, so Wake-on-LAN still works. The switch-port check
+  saw a slow link and raised a warning whenever the desktop slept. Each false alarm like that teaches me to skim the
+  page, which is the one thing it can't afford. The fix was small (ports marked optional skip the 10 Mbit sleep
+  link). The lesson is to treat a false alarm as a bug in the check, and fix it, rather than learn to ignore it.</p>
+  <h3>A fix command has to work from where I am</h3>
+  <p>Fix commands first used direct SSH into each container. I later blocked SSH into containers from my PCs, and
+  every copyable command for them stopped working. They now go through the host (<code>ssh host pct exec &lt;id&gt; --
+  …</code>), which is the path that's actually open. The Copy button is only worth having if what it copies runs.</p>
+
+  <p class="meta">Code sample: <a href="https://github.com/Morgloth/portfolio/tree/main/samples/health">samples/health</a>.
+  Demo: <a href="health-demo.html">health-demo.html</a> (made-up items, the same acknowledgement rules in the browser).</p>
+
+  <div class="next"><a href="agent.html">← Running an AI agent</a><a href="./">All write-ups →</a></div>
+</div></main>
+
+<footer class="site"><div class="wrap">Morgloth · text and code under the MIT licence · <a href="https://github.com/Morgloth/portfolio">source</a></div></footer>
+</body>
+</html>

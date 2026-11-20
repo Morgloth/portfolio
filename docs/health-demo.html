@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health Page Demo</title>
+<meta name="description" content="An interactive demo of the health page with made-up items: acknowledge, snooze, and watch items come back when they get worse or happen again.">
+<link rel="stylesheet" href="style.css">
+<style>
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; background: var(--panel);
+         border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 0 0 18px; }
+  .bar .clock { font-variant-numeric: tabular-nums; font-weight: 600; margin-right: auto; }
+  .bar .clock span { color: var(--muted); font-weight: 400; }
+  button { font: inherit; font-size: 14px; color: var(--fg); background: var(--panel-2); border: 1px solid var(--line);
+           border-radius: 7px; padding: 5px 11px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .summary { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
+  .pill { border-radius: 999px; padding: 3px 12px; font-size: 14px; border: 1px solid var(--line); background: var(--panel); }
+  .pill.bad { color: var(--bad); border-color: var(--bad); }
+  .pill.warn { color: var(--warn); border-color: var(--warn); }
+  .items { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 10px; }
+  .item { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--muted);
+          border-radius: var(--radius); padding: 12px 14px; animation: in 0.25s ease; }
+  .item.bad { border-left-color: var(--bad); }
+  .item.warn { border-left-color: var(--warn); }
+  @keyframes in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .item .top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .item .area { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
+  .item .title { font-weight: 600; }
+  .item .detail { color: var(--muted); font-size: 15px; margin: 4px 0 0; }
+  .item .note { font-size: 14px; color: var(--warn); margin: 6px 0 0; }
+  .item .how { display: flex; gap: 8px; align-items: center; margin: 8px 0 0; flex-wrap: wrap; }
+  .item .how code { font-size: 13px; overflow-wrap: anywhere; }
+  .item .acts { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 0; align-items: center; }
+  .item .acts .k { color: var(--muted); font-size: 13px; margin-right: 2px; }
+  .empty { color: var(--good); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+  details.acked { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; margin: 0 0 18px; }
+  details.acked summary { cursor: pointer; color: var(--muted); }
+  details.acked ul { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+  details.acked li { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 15px; }
+  details.acked li span.m { color: var(--muted); font-size: 13px; }
+  .sim { border: 1px dashed var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 26px 0 0; }
+  .sim h2 { margin: 0 0 6px; font-size: 1rem; }
+  .sim p { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+  .sim .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  #log { color: var(--muted); font-size: 14px; margin: 10px 0 0; min-height: 1.4em; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 20px); opacity: 0; background: var(--panel-2);
+           border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap wide">
+  <a class="name" href="./">Morgloth</a>
+  <nav>
+    <a href="dictation.html">Dictation</a>
+    <a href="guardrails.html">LLM guardrails</a>
+    <a href="agent.html">AI agent</a>
+    <a href="health.html" aria-current="page">Health page</a>
+    <a href="https://github.com/Morgloth">GitHub</a>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+  <h1>Health page demo</h1>
+  <p class="lede">Made-up items, the real acknowledgement rules. Snooze something, then use the buttons at the bottom
+  to move time forward or make things worse, and see what comes back. <a href="health.html">How it works</a></p>
+
+  <div class="bar">
+    <div class="clock" id="clock"></div>
+    <button type="button" id="reset">Start over</button>
+  </div>
+  <div class="summary" id="summary"></div>
+  <ul class="items" id="items"></ul>
+  <details class="acked" id="acked"><summary></summary><ul></ul></details>
+
+  <section class="sim" aria-labelledby="simh">
+    <h2 id="simh">Make something happen</h2>
+    <p>These stand in for the checks that rebuild the list every few minutes.</p>
+    <div class="row">
+      <button type="button" data-sim="hour">+2 hours</button>
+      <button type="button" data-sim="day">+1 day</button>
+      <button type="button" data-sim="ups">UPS battery drops</button>
+      <button type="button" data-sim="backup">Backup fails again</button>
+      <button type="button" data-sim="scrub">Run the scrub (fix it)</button>
+    </div>
+    <div id="log" aria-live="polite"></div>
+  </section>
+</div></main>
+
+<div class="toast" id="toast" role="status"></div>
+<footer class="site"><div class="wrap">Morgloth · made-up data · <a href="https://github.com/Morgloth/portfolio">source</a></div></footer>
+<script src="health-demo.js"></script>
+</body>
+</html>

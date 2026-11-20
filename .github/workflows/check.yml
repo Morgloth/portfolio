@@ -1,0 +1,27 @@
+name: check
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Lint
+        run: |
+          pip install ruff==0.8.4
+          ruff check .
+          node --check docs/health-demo.js
+      - name: Sample self-tests
+        run: |
+          for f in samples/dictation/*.py samples/guardrails/*.py samples/health/*.py; do python "$f"; done
+          echo '{"prompt":"ok, goodnight"}' | python samples/agent/hooks/sign_off_hook.py | grep -q additionalContext

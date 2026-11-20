@@ -1,0 +1,11 @@
+target-version = "py310"
+line-length = 130
+
+[lint]
+select = ["E", "F", "W", "B", "PLE", "S"]
+ignore = [
+    "S101",    # assert in the self-tests
+    "S603",    # subprocess with a fixed argv, no shell
+    "S607",    # "claude" found on PATH
+    "S310",    # urlopen on a URL from config, not from users
+]

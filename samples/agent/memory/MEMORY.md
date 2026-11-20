@@ -1,0 +1,4 @@
+- [Dark theme everywhere](dark-theme.md) — dark first on every UI; per-browser apps: tell the person where the toggle is
+- [Root steps go to a person](root-steps.md) — blocked root step: give one copyable block, then check read-only
+- [Shell alias trap](shell-alias-trap.md) — never name PowerShell helpers after built-in aliases (rd = Remove-Item)
+- [Dictation](dictation.md) — phone voice notes → Whisper → LLM filing; retry queue; requests only queued

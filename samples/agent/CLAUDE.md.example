@@ -1,0 +1,31 @@
+# CLAUDE.md (sanitized excerpt)
+
+Infrastructure repo for two Proxmox hosts and their guests. The agent runs in its own unprivileged container as a
+normal user with no sudo. Machine names, addresses and logins live in `servers.md`.
+
+## Golden rules
+
+- **Pull first.** The hosts push their live config to this repo every hour, so run `git pull --rebase` before
+  editing anything. If a pull brings changes to files you deployed, redeploy the merged versions.
+- **The repo mirrors live files.** `hosts/<machine>/<path>` is the live `/<path>` on that machine. Live wins: the next
+  sync overwrites repo edits that weren't deployed. Deploy with the `/deploy` skill.
+- **Never deploy redacted files** (configs whose secrets are stripped before they reach git).
+- **Back up before overwriting live files** (`/root/bak-before-<change>.tgz` on the target), and verify afterwards.
+- **Root steps the permission mode blocks: don't retry them.** Give the person one copyable block of commands for the
+  host shell, then check the result read-only.
+- **Secrets never go in git.** Security changes are logged in a file outside the repo.
+
+## Checks before deploying
+
+- Python: the lint hook runs after every edit; run a full `ruff check <files>` before deploying anyway.
+- Shell: `shellcheck`. JS: `node --check`.
+- Browser checks: read-only checks may hit the live site. Anything that clicks or saves runs against a scratch copy
+  of the app with a copy of its database.
+
+## Defaults the person wants
+
+- Dark theme and 24-hour clocks everywhere. One time zone on every machine; convert UTC times before saying them.
+- Everything auto-updates. Reboots that need a person show up on the health page first, with a deadline.
+- Anything that needs a person's attention shows up on the health page, nowhere else.
+- Plans and to-dos are plain `.md` files in the notes folder (the `save-note` skill), not chat history.
+- Commit and push when the work is done.

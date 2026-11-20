@@ -1,0 +1,8 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "~/agent/hooks/sign_off_hook.py", "timeout": 10}]}],
+    "PostToolUse": [{"matcher": "Edit|Write|MultiEdit",
+                     "hooks": [{"type": "command", "command": "~/agent/hooks/lint_hook.py", "timeout": 30}]}],
+    "SessionStart": [{"hooks": [{"type": "command", "command": "~/agent/hooks/request_queue_hook.py", "timeout": 5}]}]
+  }
+}

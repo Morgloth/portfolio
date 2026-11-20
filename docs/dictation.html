@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice Notes Pipeline</title>
+<meta name="description" content="Phone dictation to Whisper on a GPU to an LLM that tidies and files the note, with a retry queue built after a CUDA out-of-memory failure.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap wide">
+  <a class="name" href="./">Morgloth</a>
+  <nav>
+    <a href="dictation.html" aria-current="page">Dictation</a>
+    <a href="guardrails.html">LLM guardrails</a>
+    <a href="agent.html">AI agent</a>
+    <a href="health.html">Health page</a>
+    <a href="https://github.com/Morgloth">GitHub</a>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+  <h1>Voice notes to filed notes</h1>
+  <p class="lede">I talk into my phone; a minute later the note is cleaned up and filed in the right place in my
+  notes folder. Speech-to-text runs on my own GPU, an LLM decides where it goes, and plain code does all the writing.</p>
+
+  <div class="facts">
+    <div><b>Speech</b>Whisper large-v3-turbo on a 6 GB GPU</div>
+    <div><b>Filing</b>LLM with no tools, JSON answer</div>
+    <div><b>Code</b>Python stdlib, one web app module + one timer</div>
+    <div><b>Status</b>In daily use since October 2026</div>
+  </div>
+
+  <h2>The problem</h2>
+  <p>Most of my ideas and to-dos show up when I'm away from the keyboard: driving, cooking, walking. Typing them on a
+  phone is slow, and a plain voice memo app gives me a pile of recordings I never listen to again. I wanted to say
+  "add to the garden plan: order bean seeds" and find that line in the garden plan, with the punctuation fixed and
+  the "um"s gone.</p>
+  <p>Two rules came first: <strong>never lose a recording</strong>, even when the GPU box is off, and <strong>never
+  let a voice note run anything</strong>. A transcript is data, not a command.</p>
+
+  <h2>How it works</h2>
+  <figure>
+    <svg class="diagram" viewBox="0 0 680 340" role="img" aria-labelledby="d1t">
+      <title id="d1t">Phone records audio, the web app saves it and asks Whisper for a transcript, a timer asks an LLM to clean and classify it, and the web app checks the answer and writes the note.</title>
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <rect class="box person" x="20" y="30" width="150" height="62" rx="8"/>
+      <text x="95" y="56" text-anchor="middle">Phone</text>
+      <text class="sub" x="95" y="75" text-anchor="middle">browser page records</text>
+
+      <rect class="box hi" x="250" y="30" width="170" height="62" rx="8"/>
+      <text x="335" y="56" text-anchor="middle">Web app</text>
+      <text class="sub" x="335" y="75" text-anchor="middle">saves the audio first</text>
+
+      <rect class="box" x="500" y="30" width="160" height="62" rx="8"/>
+      <text x="580" y="56" text-anchor="middle">Whisper</text>
+      <text class="sub" x="580" y="75" text-anchor="middle">on the GPU box</text>
+
+      <path class="arrow" d="M170,61 L247,61"/>
+      <text class="lab" x="208" y="53" text-anchor="middle">audio</text>
+      <path class="arrow" d="M420,50 L497,50"/>
+      <text class="lab" x="458" y="42" text-anchor="middle">transcribe</text>
+      <path class="arrow fail" d="M500,76 L423,76"/>
+      <text class="lab" x="461" y="106" text-anchor="middle">off / busy:</text>
+      <text class="lab" x="461" y="121" text-anchor="middle">stays queued</text>
+
+      <rect class="box llm" x="20" y="180" width="150" height="62" rx="8"/>
+      <text x="95" y="206" text-anchor="middle">LLM</text>
+      <text class="sub" x="95" y="225" text-anchor="middle">no tools, JSON only</text>
+
+      <rect class="box" x="250" y="180" width="170" height="62" rx="8"/>
+      <text x="335" y="206" text-anchor="middle">Filer</text>
+      <text class="sub" x="335" y="225" text-anchor="middle">timer, every minute</text>
+
+      <rect class="box" x="500" y="180" width="160" height="62" rx="8"/>
+      <text x="580" y="206" text-anchor="middle">Notes folder</text>
+      <text class="sub" x="580" y="225" text-anchor="middle">new / append / queue</text>
+
+      <path class="arrow" d="M315,92 L315,177"/>
+      <text class="lab" x="306" y="140" text-anchor="end">raw transcripts</text>
+      <path class="arrow" d="M355,177 L355,95"/>
+      <text class="lab" x="364" y="140">proposal</text>
+      <path class="arrow" d="M250,200 L173,200"/>
+      <text class="lab" x="211" y="172" text-anchor="middle">clean + classify</text>
+      <path class="arrow" d="M170,224 L247,224"/>
+      <text class="lab" x="208" y="240" text-anchor="middle">answer</text>
+      <path class="arrow" d="M420,82 C470,100 520,140 560,177"/>
+      <text class="lab" x="500" y="152" text-anchor="middle">checks, writes</text>
+
+      <rect class="box person" x="250" y="276" width="170" height="50" rx="8"/>
+      <text x="335" y="306" text-anchor="middle">Push to the phone</text>
+      <rect class="box person" x="500" y="276" width="160" height="50" rx="8"/>
+      <text x="580" y="297" text-anchor="middle">"Claude, …" requests</text>
+      <text class="sub" x="580" y="314" text-anchor="middle">wait for a person</text>
+      <path class="arrow" d="M580,242 L580,273"/>
+      <path class="arrow" d="M500,236 L422,286"/>
+    </svg>
+    <figcaption>Blue: the only part that writes files. Dashed: the LLM, which only proposes. Green: where a person comes in.</figcaption>
+  </figure>
+
+  <ol>
+    <li><strong>Record.</strong> A small page in the phone's browser records with MediaRecorder and uploads the
+    audio. The web app writes it to disk before doing anything else, so a crash or a dead GPU box can't lose it.</li>
+    <li><strong>Transcribe.</strong> The web app sends the audio to Whisper (large-v3-turbo through Speaches, which
+    speaks the OpenAI transcription API) on the GPU box. Whisper gets a vocabulary prompt with the names I use a lot,
+    so they come out spelled right. The raw transcript is saved as a note right away and is always kept.</li>
+    <li><strong>Clean and classify.</strong> A timer on the agent's container picks up raw transcripts every
+    minute and asks an LLM, run with no tools, to fix punctuation, drop filler words, apply "scratch that", and pick
+    an action: <code>new</code>, <code>append</code> (to a named note), <code>claude</code> (a request for my AI
+    agent), <code>diary</code>, <code>discuss</code> or <code>empty</code>.</li>
+    <li><strong>Check and write.</strong> The answer goes back to the web app, which checks it and writes the
+    file. It only ever creates notes or appends dated sections; it never edits or deletes. Then it sends a push to my
+    phone with a link to the note.</li>
+  </ol>
+
+  <h2>The LLM proposes, the code decides</h2>
+  <p>The model's answer is a proposal. The web app accepts only the six known actions, and an <code>append</code>
+  target has to be a note that really exists. If the model names a note that isn't there, the text is saved as a new
+  note that says where it was meant to go, instead of being dropped or written to a made-up path.</p>
+  <pre><code><span class="c"># from samples/dictation/file_note.py</span>
+if action not in ACTIONS:
+    raise Rejected(f"unknown action {action!r}")   <span class="c"># counted as a failed try; the raw note stays</span>
+...
+if action == "append":
+    if target in notes and target != QUEUE:
+        return target, "append", f"## Dictated {stamp}\n\n{text}\n"
+    action, hint = "new", f'Meant for "{target}", which wasn\'t found, so it\'s here instead.\n\n'</code></pre>
+  <p>The prompt tells the model the transcript is data and not instructions. That helps, but it isn't the guardrail.
+  The guardrails are that the model has no tools, its output is checked, and the worst a bad answer can do is put a
+  note in the wrong folder, next to the untouched raw transcript.</p>
+  <p>Requests for my AI agent ("Claude, check why the backup was slow") are the part I was most careful with. They
+  only become an unticked line in a queue file. When I next start a session, a hook shows the agent the list and it
+  asks me which ones to do. Talking to my phone can't make the agent act on its own.</p>
+
+  <h2>What broke: the GPU ran out of memory</h2>
+  <p>On its first evening a dictation simply failed. The log showed Whisper answering <code>500</code> with a CUDA
+  out-of-memory error. The GPU only has 6 GB, and a local LLM I run on the same card for other jobs was still holding
+  most of it. The first version counted every error the server returned as a strike against the recording, and
+  after three strikes it gave up on it. A busy GPU got the recording thrown out.</p>
+  <p>The fix was to sort failures by <em>whose</em> problem they are:</p>
+  <div class="tablewrap"><table>
+    <tr><th>What happened</th><th>What it means</th><th>What the queue does</th></tr>
+    <tr><td>Server unreachable</td><td>The GPU box is off or away</td><td>Stays queued, doesn't count as a try; the next timer run tries again</td></tr>
+    <tr><td>5xx</td><td>The server's own trouble: out of memory, model loading</td><td>Stays queued, waits 1, 2, 5, 10, 20, then 30 minutes between tries; gives up and pushes a notification only after 2 days</td></tr>
+    <tr><td>4xx</td><td>It rejects this audio</td><td>Counts as a try; gives up after 3</td></tr>
+    <tr><td>LLM down or out of quota</td><td>Cleanup can't run</td><td>Raw note stays, backs off from 5 minutes to an hour, one push so I know</td></tr>
+  </table></div>
+  <p>One GPU means one transcription at a time, so a lock serialises them, and when the server says it's busy the
+  rest of the queue waits too instead of hammering it.</p>
+  <pre><code><span class="c"># from samples/dictation/transcribe_queue.py</span>
+except urllib.error.HTTPError as e:
+    if e.code &gt;= 500:                       <span class="c"># its trouble, not the recording's: queue it, back off</span>
+        n = rec.get("busy", 0)
+        rec["busy"] = n + 1
+        rec["next_try"] = now + 60 * BACKOFF_MIN[min(n, len(BACKOFF_MIN) - 1)]
+        ...
+    rec["rejects"] = rec.get("rejects", 0) + 1   <span class="c"># 4xx: it refused this audio</span>
+except OSError:                                <span class="c"># unreachable: no count, try at the next run</span>
+    return False</code></pre>
+
+  <h2>Smaller things I learned</h2>
+  <ul>
+    <li><strong>Spell out "scratch that" with an example.</strong> "Remove what came before it" is ambiguous when a
+    correction follows, so the prompt carries one worked case: "Test the new model on Tuesday. Scratch that. Test it
+    on Wednesday." becomes "Test the new model on Wednesday.", not "Test it on Wednesday." with nothing left for
+    "it" to point at.</li>
+    <li><strong>A vocabulary prompt is cheap and works.</strong> Whisper reads it as earlier text, so unusual names
+    stop coming out as near misses.</li>
+    <li><strong>Keep the raw transcript.</strong> Every filed note links back to it. When the model cleans too much, the
+    original is one click away.</li>
+    <li><strong>Make the queue visible.</strong> The raw note shows its status ("queued, waiting for the GPU box"),
+    so I never wonder whether a recording got lost.</li>
+  </ul>
+
+  <p class="meta">Code samples: <a href="https://github.com/Morgloth/portfolio/tree/main/samples/dictation">samples/dictation</a>
+  (shortened from the real module; each file runs its own checks).</p>
+
+  <div class="next"><a href="./">← All write-ups</a><a href="guardrails.html">An LLM with guardrails →</a></div>
+</div></main>
+
+<footer class="site"><div class="wrap">Morgloth · text and code under the MIT licence · <a href="https://github.com/Morgloth/portfolio">source</a></div></footer>
+</body>
+</html>
